@@ -24,10 +24,12 @@ class WebSocketProtocol(WebSocketServerProtocol):
     muted = False
 
     def set_main_factory(self, main_factory):
+        print('set_main_factory')
         self.main_factory = main_factory
         self.channel_layer = self.main_factory.channel_layer
 
     def onConnect(self, request):
+        print('onConnect')
         self.request = request
         self.packets_received = 0
         self.protocol_to_accept = None
@@ -121,6 +123,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         """
         Python 2 and 3 compat layer for utf-8 unquoting
         """
+        print('unquote')
         if six.PY2:
             return unquote(value).decode("utf8")
         else:
@@ -128,6 +131,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
 
     def onOpen(self):
         # Send news that this channel is open
+        print('onOpen')
         logger.debug("WebSocket %s open and established", self.reply_channel)
         self.factory.log_action("websocket", "connected", {
             "path": self.request.path,
@@ -136,6 +140,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
 
     def onMessage(self, payload, isBinary):
         # If we're muted, do nothing.
+        print('onMessage')
         if self.muted:
             logger.debug("Muting incoming frame on %s", self.reply_channel)
             return
@@ -169,6 +174,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         """
         Called when we get a message saying to accept the connection.
         """
+        print('severAccept')
         self.handshake_deferred.callback(self.protocol_to_accept)
         logger.debug("WebSocket %s accepted by application", self.reply_channel)
 
@@ -176,6 +182,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         """
         Called when we get a message saying to reject the connection.
         """
+        print('serverReject')
         self.handshake_deferred.errback(ConnectionDeny(code=403, reason="Access denied"))
         self.cleanup()
         logger.debug("WebSocket %s rejected by application", self.reply_channel)
@@ -188,6 +195,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         """
         Server-side channel message to send a message.
         """
+        print('serverSend')
         if self.state == self.STATE_CONNECTING:
             self.serverAccept()
         self.last_data = time.time()
@@ -201,10 +209,12 @@ class WebSocketProtocol(WebSocketServerProtocol):
         """
         Server-side channel message to close the socket
         """
+        print('serverClose')
         code = 1000 if code is True else code
         self.sendClose(code=code)
 
     def onClose(self, wasClean, code, reason):
+        print('onClose')
         self.cleanup()
         if hasattr(self, "reply_channel"):
             logger.debug("WebSocket closed for %s", self.reply_channel)
@@ -229,6 +239,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         """
         Call to clean up this socket after it's closed.
         """
+        print('cleanUp')
         if hasattr(self, "reply_channel"):
             if self.reply_channel in self.factory.reply_protocols:
                 del self.factory.reply_protocols[self.reply_channel]
@@ -237,12 +248,14 @@ class WebSocketProtocol(WebSocketServerProtocol):
         """
         Returns the time since the socket was opened
         """
+        print('duration')
         return time.time() - self.socket_opened
 
     def check_ping(self):
         """
         Checks to see if we should send a keepalive ping/deny socket connection
         """
+        print('check_ping')
         # If we're still connecting, deny the connection
         if self.state == self.STATE_CONNECTING:
             if self.duration() > self.main_factory.websocket_connect_timeout:
@@ -261,6 +274,7 @@ class WebSocketFactory(WebSocketServerFactory):
     """
 
     def __init__(self, main_factory, *args, **kwargs):
+        print('init websocket factory')
         self.main_factory = main_factory
         WebSocketServerFactory.__init__(self, *args, **kwargs)
 
